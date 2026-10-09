@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>バチ納め衣装決め投票</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Shippori+Mincho:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="mockNote" class="mock-note" hidden>お試しモードです（投票はこの端末の中だけに保存されます）</div>
+  <header class="site">
+    <div class="wrap">
+      <h1 id="title">バチ納め衣装決め投票</h1>
+      <p class="deadline" id="deadline">&nbsp;</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="loading"><p class="center">読み込み中…</p></section>
+
+    <!-- 投票 -->
+    <section id="voteView" hidden>
+      <div class="panel">
+        <label class="name" for="name">お名前</label>
+        <input id="name" type="text" maxlength="30" autocomplete="name" placeholder="例：山田 太郎">
+        <p class="hint">二重投票を防ぐためだけに使います。誰が何に投票したかは記録されません。</p>
+      </div>
+      <div class="panel">
+        <h2>好きな衣装を3つ選んでください</h2>
+        <p>タップした順に 1位 → 2位 → 3位 になります。もう一度タップすると取り消せます。虫めがねで拡大できます。</p>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <!-- 結果 -->
+    <section id="resultView" hidden>
+      <div class="panel thanks" id="thanks" hidden>
+        <h2>投票ありがとうございました</h2>
+        <p id="thanksMsg"></p>
+      </div>
+      <div class="result-head">
+        <h2 id="resultTitle">集計結果</h2>
+        <span class="status" id="resultStatus"></span>
+      </div>
+      <p style="margin:0 0 12px"><a class="btn print-btn" id="printLink" href="print.html">上位5つをA4で印刷</a></p>
+      <div class="rank-list" id="rankList"></div>
+    </section>
+
+    <!-- 締切後で未投票、または結果がまだ見られない -->
+    <section id="messageView" hidden>
+      <div class="panel"><h2 id="msgTitle"></h2><p id="msgBody"></p></div>
+    </section>
+  </main>
+
+  <div class="tray" id="tray" hidden>
+    <div class="wrap">
+      <div class="slots" id="slots"></div>
+      <button class="submit" id="submit" disabled>送信</button>
+    </div>
+  </div>
+
+  <dialog id="confirmDlg">
+    <div class="dlg-body">
+      <h3>この内容で投票しますか？</h3>
+      <p style="margin:0;color:var(--muted);font-size:14px">お名前：<b id="confirmName" style="color:var(--ink)"></b><br>送信後は変更できません。</p>
+      <div class="confirm-list" id="confirmList"></div>
+      <p class="error" id="confirmError" hidden></p>
+      <div class="dlg-actions">
+        <button class="btn" id="cancelBtn">戻る</button>
+        <button class="btn primary" id="sendBtn">投票する</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="lightbox" class="lightbox">
+    <button class="close" aria-label="閉じる" id="lbClose">×</button>
+    <img id="lbImg" alt="">
+  </dialog>
+
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

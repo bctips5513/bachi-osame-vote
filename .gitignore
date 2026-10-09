@@ -1,0 +1,5 @@
+.venv/
+raw/
+images/
+node_modules/
+.clasprc.json
