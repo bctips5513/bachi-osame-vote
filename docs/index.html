@@ -29,29 +29,57 @@
     <!-- 投票 -->
     <section id="voteView" hidden>
       <div class="panel">
-        <h2><span class="step">1</span>おなまえを書いてね</h2>
-        <input id="name" type="text" maxlength="30" autocomplete="name" placeholder="れい：やまだ たろう" aria-label="おなまえ">
-        <p class="hint">同じ人が2回<ruby>投票<rt>とうひょう</rt></ruby>しないように使うよ。だれがどれをえらんだかは、だれにもわからないよ。</p>
+        <h2><span class="step">1</span><span>お<ruby>名前<rt>なまえ</rt></ruby>を<ruby>書<rt>か</rt></ruby>いてね</span></h2>
+        <input id="name" type="text" maxlength="30" autocomplete="name" placeholder="れい：やまだ たろう" aria-label="お名前">
+        <p class="hint"><ruby>同<rt>おな</rt></ruby>じ<ruby>人<rt>ひと</rt></ruby>が2<ruby>回<rt>かい</rt></ruby><ruby>投票<rt>とうひょう</rt></ruby>しないように<ruby>使<rt>つか</rt></ruby>うよ。だれがどれを<ruby>選<rt>えら</rt></ruby>んだかは、だれにもわからないよ。</p>
       </div>
       <div class="panel">
-        <h2><span class="step">2</span>すきな<ruby>衣装<rt>いしょう</rt></ruby>を3つえらんでね</h2>
-        <p>タップしたじゅんに <b>1位 → 2位 → 3位</b> になるよ。もういちどタップすると とりけせるよ。<br>🔍 をおすと 大きく見られるよ。</p>
+        <h2><span class="step">2</span><span><ruby>好<rt>す</rt></ruby>きな<ruby>衣装<rt>いしょう</rt></ruby>を3つ<ruby>選<rt>えら</rt></ruby>んでね</span></h2>
+        <p>タップした<ruby>順<rt>じゅん</rt></ruby>に <b>1位 → 2位 → 3位</b> になるよ。もう<ruby>一度<rt>いちど</rt></ruby>タップすると<ruby>取<rt>と</rt></ruby>り<ruby>消<rt>け</rt></ruby>せるよ。<br>🔍 を<ruby>押<rt>お</rt></ruby>すと<ruby>大<rt>おお</rt></ruby>きく<ruby>見<rt>み</rt></ruby>られるよ。</p>
+        <p class="small-note">※ <ruby>衣装<rt>いしょう</rt></ruby>の<ruby>並<rt>なら</rt></ruby>び<ruby>順<rt>じゅん</rt></ruby>は、<ruby>見<rt>み</rt></ruby>る<ruby>人<rt>ひと</rt></ruby>ごとにバラバラ（ランダム）だよ。</p>
       </div>
       <div class="grid" id="grid"></div>
     </section>
 
     <!-- 結果 -->
     <section id="resultView" hidden>
+      <div class="panel admin" id="adminPanel" hidden>
+        <div class="admin-head">
+          <h2>🔧 管理者モード</h2>
+          <button type="button" class="btn small" id="adminLogout">終了</button>
+        </div>
+        <div class="admin-row">
+          <div class="admin-label">モード</div>
+          <div class="admin-ctrl">
+            <span class="mode-badge" id="modeBadge"></span>
+            <button type="button" class="btn small" id="modeToggle"></button>
+          </div>
+          <p class="admin-help" id="modeHelp"></p>
+        </div>
+        <div class="admin-row">
+          <div class="admin-label"><label for="deadlineInput">締切</label></div>
+          <div class="admin-ctrl">
+            <input type="datetime-local" id="deadlineInput" step="60">
+            <button type="button" class="btn small" id="deadlineSave">保存</button>
+          </div>
+          <p class="admin-help">日本時間で入力してください。保存するとすぐに全員の画面に反映されます。</p>
+        </div>
+        <div class="admin-row">
+          <div class="admin-label">印刷</div>
+          <div class="admin-ctrl"><a class="btn small" href="print.html">🖨 上位5つをA4で印刷</a></div>
+        </div>
+        <p class="error" id="adminError" hidden></p>
+      </div>
+
       <div class="panel thanks" id="thanks" hidden>
         <div class="big" aria-hidden="true">🎉</div>
-        <h2><ruby>投票<rt>とうひょう</rt></ruby>ありがとう！</h2>
+        <h2><span><ruby>投票<rt>とうひょう</rt></ruby>ありがとう！</span></h2>
         <p id="thanksMsg"></p>
       </div>
       <div class="result-head">
-        <h2 id="resultTitle">けっか</h2>
+        <h2 id="resultTitle"></h2>
         <span class="status" id="resultStatus"></span>
       </div>
-      <p class="print-row"><a class="btn" id="printLink" href="print.html">🖨 上位5つをA4でいんさつ</a></p>
       <div class="rank-list" id="rankList"></div>
     </section>
 
@@ -59,26 +87,42 @@
     <section id="messageView" hidden>
       <div class="panel"><h2 id="msgTitle"></h2><p id="msgBody"></p></div>
     </section>
+
+    <footer class="foot">
+      <button type="button" class="link" id="adminOpen">管理者</button>
+    </footer>
   </main>
 
   <div class="tray" id="tray" hidden>
     <div class="wrap">
       <div class="slots" id="slots"></div>
-      <button class="submit" id="submit" disabled>おくる</button>
+      <button class="submit" id="submit" disabled></button>
     </div>
   </div>
 
   <dialog id="confirmDlg">
     <div class="dlg-body">
       <h3>これで<ruby>投票<rt>とうひょう</rt></ruby>する？</h3>
-      <p class="sub"><b id="confirmName" style="color:var(--ink)"></b> さん<br>おくったあとは かえられないよ</p>
+      <p class="sub"><b id="confirmName" style="color:var(--ink)"></b> さん<br><ruby>送<rt>おく</rt></ruby>った<ruby>後<rt>あと</rt></ruby>は<ruby>変<rt>か</rt></ruby>えられないよ</p>
       <div class="confirm-list" id="confirmList"></div>
       <p class="error" id="confirmError" hidden></p>
       <div class="dlg-actions">
         <button class="btn" id="cancelBtn">もどる</button>
-        <button class="btn primary" id="sendBtn">投票する！</button>
+        <button class="btn primary" id="sendBtn"></button>
       </div>
     </div>
+  </dialog>
+
+  <dialog id="adminDlg">
+    <form class="dlg-body" id="adminForm">
+      <h3>管理者ログイン</h3>
+      <input type="password" id="adminPw" inputmode="numeric" autocomplete="off" placeholder="パスワード" aria-label="パスワード">
+      <p class="error" id="adminLoginError" hidden></p>
+      <div class="dlg-actions">
+        <button type="button" class="btn" id="adminCancel">やめる</button>
+        <button type="submit" class="btn primary" id="adminLogin">ログイン</button>
+      </div>
+    </form>
   </dialog>
 
   <dialog id="lightbox" class="lightbox">

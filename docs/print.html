@@ -73,14 +73,16 @@
     (async function () {
       const cfg = window.VOTE_CONFIG;
       const root = document.getElementById('root');
-      const token = new URLSearchParams(location.search).get('t') || VotedStore.get();
-      let res;
-      try { res = await VoteApi.results(token); } catch (e) { res = { ok: false }; }
+      let res = { ok: false };
+      try {
+        if (AdminSession.get() && (await VoteApi.init()).ok) res = await VoteApi.adminResults();
+      } catch (e) { /* 下でメッセージを出す */ }
       if (!res.ok) {
-        root.innerHTML = '<p class="msg">結果はまだ公開されていません。</p>';
+        root.innerHTML = '<p class="msg">このページは管理者モードでログインしたときだけ使えます。</p>';
         return;
       }
-      document.getElementById('note').textContent = res.closed ? '最終結果' : '※途中経過です（締切前）';
+      document.getElementById('note').textContent =
+        (VoteApi.isDemo() ? '【デモモードの結果】' : '') + (res.closed ? '最終結果' : '※途中経過です（締切前）');
 
       // 5位と同点のものはすべて含める
       const top = res.items.filter(it => it.rank <= 5 && it.points > 0);

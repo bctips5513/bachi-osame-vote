@@ -1,11 +1,13 @@
-// 集計APIとのやりとり。デモモードではブラウザ内にだけ保存する
+// 集計APIとのやりとり。デモ／本番の切り替えはスプレッドシート側の設定に従う
 (function () {
   const cfg = window.VOTE_CONFIG;
   const POINTS = [3, 2, 1];
+  const FALLBACK_DEADLINE = '2026-10-15T23:59:00+09:00';
+
+  const session = { mode: 'demo', deadline: new Date(FALLBACK_DEADLINE) };
 
   async function get(params) {
-    const url = cfg.apiUrl + '?' + new URLSearchParams(params).toString();
-    const res = await fetch(url);
+    const res = await fetch(cfg.apiUrl + '?' + new URLSearchParams(params).toString());
     return res.json();
   }
 
@@ -19,7 +21,7 @@
     return res.json();
   }
 
-  // ---- デモモード ----
+  // ---- デモモード（この端末の中だけに保存） ----
   const MOCK_KEY = 'bachi-mock-db';
   function mockDb() {
     try {
@@ -31,11 +33,11 @@
   function mockSave(db) {
     try { localStorage.setItem(MOCK_KEY, JSON.stringify(db)); } catch (e) { /* noop */ }
   }
-  function mockDeadline() {
-    return new Date('2026-10-15T23:59:00+09:00');
-  }
   function normalize(name) {
     return name.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
+  }
+  function isClosed() {
+    return Date.now() > session.deadline.getTime();
   }
   function tally(votes) {
     const items = [];
@@ -52,11 +54,8 @@
     return items;
   }
   const mock = {
-    async config() {
-      const d = mockDeadline();
-      return { ok: true, deadline: d.toISOString(), closed: Date.now() > d.getTime() };
-    },
     async vote(name, ranks) {
+      if (isClosed()) return { ok: false, error: 'closed' };
       const db = mockDb();
       const key = normalize(name);
       if (db.voters[key]) return { ok: false, error: 'already_voted' };
@@ -66,46 +65,78 @@
       mockSave(db);
       return { ok: true, token };
     },
-    async results(token) {
+    async results(token, admin) {
       const db = mockDb();
-      const closed = Date.now() > mockDeadline().getTime();
-      if (!closed && !Object.values(db.voters).includes(token)) return { ok: false, error: 'not_yet' };
-      return { ok: true, closed, deadline: mockDeadline().toISOString(), voters: db.votes.length, items: tally(db.votes) };
+      if (!admin && !isClosed() && !Object.values(db.voters).includes(token)) return { ok: false, error: 'not_yet' };
+      return { ok: true, closed: isClosed(), deadline: session.deadline.toISOString(), voters: db.votes.length, items: tally(db.votes) };
     },
   };
 
-  const live = {
-    config: () => get({ action: 'config' }),
-    vote: (name, ranks) => post({ action: 'vote', name, ranks }),
-    results: token => get({ action: 'results', token: token || '' }),
+  // ---- 管理者のパスワード（このタブを閉じるまで保持） ----
+  const ADMIN_KEY = 'bachi_admin';
+  window.AdminSession = {
+    get() { try { return sessionStorage.getItem(ADMIN_KEY); } catch (e) { return null; } },
+    set(pw) { try { sessionStorage.setItem(ADMIN_KEY, pw); } catch (e) { /* noop */ } },
+    clear() { try { sessionStorage.removeItem(ADMIN_KEY); } catch (e) { /* noop */ } },
   };
 
-  const isDemo = cfg.demo || !cfg.apiUrl;
-  window.VoteApi = isDemo ? mock : live;
-  window.VoteApi.isMock = isDemo;
+  function apply(conf) {
+    session.mode = conf.mode === 'live' ? 'live' : 'demo';
+    session.deadline = new Date(conf.deadline);
+    return conf;
+  }
+
+  window.VoteApi = {
+    // サーバーから締切とモードを読み込む。URL未設定ならデモモード
+    async init() {
+      if (!cfg.apiUrl) {
+        return { ok: true, mode: 'demo', deadline: session.deadline.toISOString(), closed: isClosed(), offline: true };
+      }
+      return apply(await get({ action: 'config' }));
+    },
+    isDemo: () => session.mode !== 'live',
+    vote(name, ranks) {
+      return this.isDemo() ? mock.vote(name, ranks) : post({ action: 'vote', name, ranks });
+    },
+    results(token) {
+      return this.isDemo() ? mock.results(token, false) : get({ action: 'results', token: token || '' });
+    },
+
+    // 管理者用。パスワードの照合はサーバー側で行う
+    async admin(op, value, password) {
+      if (!cfg.apiUrl) return { ok: false, error: 'offline' };
+      const res = await post({ action: 'admin', op, value, password: password || AdminSession.get() || '' });
+      if (res.ok && res.mode) apply(res);
+      return res;
+    },
+    adminResults() {
+      return this.isDemo() ? mock.results(null, true) : this.admin('results');
+    },
+  };
 
   // 投票済みの記録（Cookie と localStorage の両方に残す）。デモと本番で別のキーにする
-  const VOTED_KEY = isDemo ? 'bachi_demo_voted' : 'bachi_voted';
+  const votedKey = () => (session.mode === 'live' ? 'bachi_voted' : 'bachi_demo_voted');
+  window.VotedStore = {
+    get() {
+      const m = document.cookie.match(new RegExp('(?:^|; )' + votedKey() + '=([^;]*)'));
+      if (m) return decodeURIComponent(m[1]);
+      try { return localStorage.getItem(votedKey()); } catch (e) { return null; }
+    },
+    set(token) {
+      document.cookie = votedKey() + '=' + encodeURIComponent(token) + '; max-age=' + 60 * 60 * 24 * 180 + '; SameSite=Lax';
+      try { localStorage.setItem(votedKey(), token); } catch (e) { /* noop */ }
+    },
+  };
 
   // デモの投票と投票済みの記録を消す
   window.resetDemo = function () {
     try {
       localStorage.removeItem(MOCK_KEY);
-      localStorage.removeItem(VOTED_KEY);
+      localStorage.removeItem('bachi_demo_voted');
     } catch (e) { /* noop */ }
-    document.cookie = VOTED_KEY + '=; max-age=0; SameSite=Lax';
-  };
-  window.VotedStore = {
-    get() {
-      const m = document.cookie.match(new RegExp('(?:^|; )' + VOTED_KEY + '=([^;]*)'));
-      if (m) return decodeURIComponent(m[1]);
-      try { return localStorage.getItem(VOTED_KEY); } catch (e) { return null; }
-    },
-    set(token) {
-      document.cookie = VOTED_KEY + '=' + encodeURIComponent(token) + '; max-age=' + 60 * 60 * 24 * 180 + '; SameSite=Lax';
-      try { localStorage.setItem(VOTED_KEY, token); } catch (e) { /* noop */ }
-    },
+    document.cookie = 'bachi_demo_voted=; max-age=0; SameSite=Lax';
   };
 
   window.imgSrc = id => 'img/' + String(id).padStart(2, '0') + '.jpg';
+  window.ruby = (kanji, kana) => `<ruby>${kanji}<rt>${kana}</rt></ruby>`;
 })();
