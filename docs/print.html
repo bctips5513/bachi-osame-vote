@@ -37,6 +37,10 @@
       margin: 0; text-align: center;
       font-weight: 800; font-size: 20pt; letter-spacing: .08em;
     }
+    h1.title { display: flex; flex-direction: column; align-items: center; }
+    .title .t1, .title .t2 { white-space: nowrap; font-feature-settings: "palt"; }
+    .title .t1 { font-size: 12pt; line-height: 1.4; letter-spacing: .02em; padding-left: .02em; }
+    .title .t2 { font-size: 26pt; line-height: 1.25; letter-spacing: .06em; padding-left: .06em; }
     .top { flex: 0 0 auto; height: 112mm; }
     .rest { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; min-height: 0; }
     .item { position: relative; display: flex; flex-direction: column; min-height: 0; border: .3mm solid #d8d2c4; border-radius: 3mm; padding: 3mm; }
@@ -94,12 +98,17 @@
       const [first, ...rest] = top;
       root.innerHTML = `
         <div class="sheet">
-          <h1>${cfg.title}</h1>
+          <h1 class="title" id="pageTitle">
+            <span class="t1">2026　バチ納め演奏会</span>
+            <span class="t2">衣装決め投票</span>
+          </h1>
           ${first ? card(first, 'top') : ''}
           <div class="rest" style="grid-template-rows:repeat(${Math.max(1, Math.ceil(rest.length / 2))}, minmax(0, 1fr))">
             ${rest.map(it => card(it)).join('')}
           </div>
         </div>`;
+
+      fitTitle(document.getElementById('pageTitle'));
 
       // スマホ画面では用紙全体が見えるよう縮小表示（印刷サイズは変わらない）
       const sheet = root.querySelector('.sheet');

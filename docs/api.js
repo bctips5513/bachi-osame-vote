@@ -137,6 +137,24 @@
     document.cookie = 'bachi_demo_voted=; max-age=0; SameSite=Lax';
   };
 
+  // 2段タイトルの1段目を、2段目と同じ幅になる文字サイズにそろえる
+  window.fitTitle = function (h1) {
+    if (!h1) return;
+    const t1 = h1.querySelector('.t1');
+    const t2 = h1.querySelector('.t2');
+    const fit = () => {
+      t1.style.fontSize = '';
+      // 左右の文字間隔ぶん（CSSで左にも同じだけ余白を付けて中央をそろえている）は見た目の幅に含めない
+      const ink = el => el.getBoundingClientRect().width - 2 * (parseFloat(getComputedStyle(el).letterSpacing) || 0);
+      const w1 = ink(t1);
+      const w2 = ink(t2);
+      if (w1 > 0 && w2 > 0) t1.style.fontSize = (parseFloat(getComputedStyle(t1).fontSize) * w2 / w1) + 'px';
+    };
+    fit();
+    if (document.fonts) document.fonts.ready.then(fit);
+    window.addEventListener('resize', fit);
+  };
+
   window.imgSrc = id => 'img/' + String(id).padStart(2, '0') + '.jpg';
   window.ruby = (kanji, kana) => `<ruby>${kanji}<rt>${kana}</rt></ruby>`;
 })();

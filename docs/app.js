@@ -14,6 +14,7 @@
   const state = { picks: [], deadline: null, confReady: null };
 
   document.title = cfg.title;
+  fitTitle($('pageTitle'));
 
   function show(id) {
     ['loading', 'voteView', 'resultView', 'messageView'].forEach(s => { $(s).hidden = s !== id; });

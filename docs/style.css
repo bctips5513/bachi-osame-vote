@@ -78,11 +78,18 @@ header.site .wrap { position: relative; }
 header.site h1 {
   margin: 0;
   font-weight: 800;
-  font-size: clamp(26px, 7.4vw, 40px);
-  line-height: 1.5;
-  letter-spacing: .04em;
   text-shadow: 0 3px 0 var(--red-dark);
 }
+/* 2段タイトル。1段目の文字サイズは JS(fitTitle) で2段目と同じ幅になるよう調整する */
+.title { display: flex; flex-direction: column; align-items: center; width: fit-content; margin: 0 auto !important; }
+.title rt { ruby-align: center; }
+.title .t1, .title .t2 {
+  white-space: nowrap;
+  font-feature-settings: "palt";
+}
+.title .t1 { font-size: 20px; line-height: 1.7; letter-spacing: .02em; padding-left: .02em; }
+.title .t2 { font-size: clamp(40px, 12.5vw, 64px); line-height: 1.35; letter-spacing: .06em; padding-left: .06em; }
+.title .t2 rt { font-size: .3em; letter-spacing: .05em; }
 header.site h1 rt { text-shadow: none; opacity: .95; }
 .deadline {
   display: inline-block;
@@ -352,3 +359,4 @@ input[type="datetime-local"], input[type="password"] {
   background: var(--bg); color: var(--ink); min-width: 0;
 }
 input[type="password"] { width: 100%; margin-top: 12px; text-align: center; letter-spacing: .3em; }
+.deadline:empty { visibility: hidden; }
