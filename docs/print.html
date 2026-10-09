@@ -7,23 +7,23 @@
   <title>上位5位 印刷用</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Shippori+Mincho:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800&display=swap" rel="stylesheet">
   <style>
     @page { size: A4 portrait; margin: 12mm; }
     * { box-sizing: border-box; }
     body {
       margin: 0; background: #e9e6df; color: #1d2230;
-      font-family: "Noto Sans JP", "Hiragino Sans", sans-serif;
+      font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", sans-serif;
     }
     .bar {
       position: sticky; top: 0; z-index: 2;
       display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
-      padding: 10px 16px; background: #24375e; color: #fff; font-size: 14px;
+      padding: 10px 16px; background: #2c3e8f; color: #fff; font-size: 14px;
     }
     .bar a { color: #fff; }
     .bar button {
       font: inherit; font-weight: 700; border: 0; border-radius: 8px; padding: 8px 16px;
-      background: #b8352a; color: #fff; cursor: pointer;
+      background: #e5432f; color: #fff; cursor: pointer;
     }
     /* A4 1枚（余白12mmを除いた 186 x 273mm） */
     .sheet {
@@ -35,13 +35,13 @@
     @media screen { .sheet { outline: 12mm solid #fff; margin: calc(16px + 12mm) auto; } }
     h1 {
       margin: 0; text-align: center;
-      font-family: "Shippori Mincho", serif; font-size: 20pt; letter-spacing: .08em;
+      font-weight: 800; font-size: 20pt; letter-spacing: .08em;
     }
     .top { flex: 0 0 auto; height: 112mm; }
     .rest { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; min-height: 0; }
     .item { position: relative; display: flex; flex-direction: column; min-height: 0; border: .3mm solid #d8d2c4; border-radius: 3mm; padding: 3mm; }
     .item .rank {
-      font-family: "Shippori Mincho", serif; font-weight: 700; font-size: 16pt; line-height: 1;
+      font-weight: 800; font-size: 16pt; line-height: 1;
       margin-bottom: 2mm;
     }
     .top .rank { font-size: 24pt; }

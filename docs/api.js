@@ -1,4 +1,4 @@
-// 集計APIとのやりとり。apiUrl が未設定ならブラウザ内に保存するお試しモード
+// 集計APIとのやりとり。デモモードではブラウザ内にだけ保存する
 (function () {
   const cfg = window.VOTE_CONFIG;
   const POINTS = [3, 2, 1];
@@ -19,7 +19,7 @@
     return res.json();
   }
 
-  // ---- お試しモード ----
+  // ---- デモモード ----
   const MOCK_KEY = 'bachi-mock-db';
   function mockDb() {
     try {
@@ -32,8 +32,7 @@
     try { localStorage.setItem(MOCK_KEY, JSON.stringify(db)); } catch (e) { /* noop */ }
   }
   function mockDeadline() {
-    const d = new Date('2026-10-15T23:59:00+09:00');
-    return d;
+    return new Date('2026-10-15T23:59:00+09:00');
   }
   function normalize(name) {
     return name.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
@@ -81,11 +80,21 @@
     results: token => get({ action: 'results', token: token || '' }),
   };
 
-  window.VoteApi = cfg.apiUrl ? live : mock;
-  window.VoteApi.isMock = !cfg.apiUrl;
+  const isDemo = cfg.demo || !cfg.apiUrl;
+  window.VoteApi = isDemo ? mock : live;
+  window.VoteApi.isMock = isDemo;
 
-  // 投票済みの記録（Cookie と localStorage の両方に残す）
-  const VOTED_KEY = 'bachi_voted';
+  // 投票済みの記録（Cookie と localStorage の両方に残す）。デモと本番で別のキーにする
+  const VOTED_KEY = isDemo ? 'bachi_demo_voted' : 'bachi_voted';
+
+  // デモの投票と投票済みの記録を消す
+  window.resetDemo = function () {
+    try {
+      localStorage.removeItem(MOCK_KEY);
+      localStorage.removeItem(VOTED_KEY);
+    } catch (e) { /* noop */ }
+    document.cookie = VOTED_KEY + '=; max-age=0; SameSite=Lax';
+  };
   window.VotedStore = {
     get() {
       const m = document.cookie.match(new RegExp('(?:^|; )' + VOTED_KEY + '=([^;]*)'));

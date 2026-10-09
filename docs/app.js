@@ -2,13 +2,19 @@
   const cfg = window.VOTE_CONFIG;
   const $ = id => document.getElementById(id);
   const RANK_LABELS = ['1位', '2位', '3位'];
-  const ZOOM_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>';
+  const ZOOM_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>';
+  const medal = place => `<span class="medal m${place}" aria-hidden="true"><b>${place}</b><small>位</small></span>`;
 
   const state = { picks: [], closed: false, deadline: null };
 
   document.title = cfg.title;
-  $('title').textContent = cfg.title;
-  if (VoteApi.isMock) $('mockNote').hidden = false;
+  if (VoteApi.isMock) {
+    $('demoNote').hidden = false;
+    $('demoReset').addEventListener('click', () => {
+      resetDemo();
+      location.reload();
+    });
+  }
 
   function show(id) {
     ['loading', 'voteView', 'resultView', 'messageView'].forEach(s => { $(s).hidden = s !== id; });
@@ -49,11 +55,11 @@
       card.dataset.id = id;
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
-      card.setAttribute('aria-label', `No.${id} を選ぶ`);
+      card.setAttribute('aria-label', `No.${id} をえらぶ`);
       card.innerHTML = `
         <div class="ph"><img src="${imgSrc(id)}" alt="No.${id}" loading="lazy"></div>
         <span class="no">No.${id}</span>
-        <button class="zoom" type="button" aria-label="No.${id} を拡大">${ZOOM_ICON}</button>`;
+        <button class="zoom" type="button" aria-label="No.${id} を大きく見る">${ZOOM_ICON}</button>`;
       card.addEventListener('click', e => {
         if (e.target.closest('.zoom')) return openLightbox(id);
         toggle(id);
@@ -71,25 +77,33 @@
     if (i >= 0) state.picks.splice(i, 1);
     else if (state.picks.length < 3) state.picks.push(id);
     else return flashTray();
-    renderPicks();
+    renderPicks(i < 0 ? id : null);
   }
 
   function flashTray() {
-    const s = $('slots');
-    s.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 250 });
+    $('slots').animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-7px)' }, { transform: 'translateX(7px)' }, { transform: 'translateX(0)' }], { duration: 260 });
   }
 
-  function renderPicks() {
+  function renderPicks(justPicked) {
     document.querySelectorAll('.card').forEach(card => {
       const id = Number(card.dataset.id);
       const i = state.picks.indexOf(id);
-      card.classList.toggle('selected', i >= 0);
+      card.classList.remove('selected', 'p1', 'p2', 'p3');
       card.setAttribute('aria-pressed', i >= 0 ? 'true' : 'false');
-      let badge = card.querySelector('.badge');
+      const old = card.querySelector('.medal');
       if (i >= 0) {
-        if (!badge) { badge = document.createElement('span'); badge.className = 'badge'; card.appendChild(badge); }
-        badge.textContent = RANK_LABELS[i];
-      } else if (badge) badge.remove();
+        card.classList.add('selected', 'p' + (i + 1));
+        // 順位が変わったときだけメダルを付け直してアニメーションさせる
+        if (!old || old.className.indexOf('m' + (i + 1)) < 0) {
+          if (old) old.remove();
+          card.insertAdjacentHTML('beforeend', medal(i + 1));
+        }
+      } else if (old) old.remove();
+      if (id === justPicked) {
+        card.classList.remove('pop');
+        void card.offsetWidth;
+        card.classList.add('pop');
+      }
     });
 
     const slots = $('slots');
@@ -98,11 +112,13 @@
       const id = state.picks[i];
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'slot' + (id ? ' filled' : '');
-      b.innerHTML = `<span class="lbl">${label}</span>` + (id ? `<img src="${imgSrc(id)}" alt="${label}: No.${id}">` : '未選択');
+      b.className = 'slot' + (id ? ` filled s${i + 1}` : '');
+      b.innerHTML = medal(i + 1) + (id ? `<img src="${imgSrc(id)}" alt="${label}: No.${id}">` : 'まだ');
       if (id) {
-        b.setAttribute('aria-label', `${label}のNo.${id}を取り消す`);
+        b.setAttribute('aria-label', `${label}のNo.${id}をとりけす`);
         b.addEventListener('click', () => toggle(id));
+      } else {
+        b.setAttribute('aria-label', `${label}はまだえらんでいません`);
       }
       slots.appendChild(b);
     });
@@ -110,8 +126,14 @@
   }
 
   function updateSubmit() {
-    $('submit').disabled = !($('name').value.trim() && state.picks.length === 3);
-    $('submit').textContent = state.picks.length === 3 && !$('name').value.trim() ? '名前を入力' : '送信';
+    const hasName = !!$('name').value.trim();
+    const ready = hasName && state.picks.length === 3;
+    const btn = $('submit');
+    btn.disabled = !ready;
+    btn.classList.toggle('ready', ready);
+    if (ready) btn.textContent = 'おくる！';
+    else if (state.picks.length < 3) btn.textContent = `あと${3 - state.picks.length}つ`;
+    else btn.textContent = 'なまえを書いてね';
   }
 
   function openLightbox(id) {
@@ -123,64 +145,69 @@
   function openConfirm() {
     $('confirmName').textContent = $('name').value.trim();
     $('confirmList').innerHTML = state.picks.map((id, i) =>
-      `<figure><div class="ph"><img src="${imgSrc(id)}" alt="No.${id}"></div><figcaption>${RANK_LABELS[i]}</figcaption></figure>`).join('');
+      `<figure>${medal(i + 1)}<div class="ph"><img src="${imgSrc(id)}" alt="${RANK_LABELS[i]}: No.${id}"></div></figure>`).join('');
     $('confirmError').hidden = true;
     $('sendBtn').disabled = false;
-    $('sendBtn').textContent = '投票する';
+    $('sendBtn').textContent = '投票する！';
     $('confirmDlg').showModal();
   }
 
   const ERRORS = {
-    already_voted: 'このお名前ではすでに投票済みです。',
-    closed: '締切を過ぎたため投票できません。',
-    bad_name: 'お名前を30文字以内で入力してください。',
-    bad_ranks: '3つの衣装を選び直してください。',
+    already_voted: 'このなまえは もう投票しているよ。',
+    closed: 'しめきりを すぎたので 投票できないよ。',
+    bad_name: 'なまえを 30文字までで 書いてね。',
+    bad_ranks: '衣装を3つ えらびなおしてね。',
   };
 
   async function send() {
     $('sendBtn').disabled = true;
-    $('sendBtn').textContent = '送信中…';
+    $('sendBtn').textContent = 'おくっています…';
     try {
       const res = await VoteApi.vote($('name').value.trim(), state.picks.slice());
-      if (!res.ok) throw new Error(ERRORS[res.error] || '送信に失敗しました。時間をおいてもう一度お試しください。');
+      if (!res.ok) throw new Error(ERRORS[res.error] || 'うまくおくれなかったよ。すこし待ってから もういちど ためしてね。');
       VotedStore.set(res.token);
       $('confirmDlg').close();
       window.scrollTo(0, 0);
       await loadResults(res.token, true);
+      confetti();
     } catch (err) {
-      $('confirmError').textContent = err.message || '通信エラーが発生しました。電波の良い場所でもう一度お試しください。';
+      $('confirmError').textContent = err.message || 'つうしんエラーだよ。電波のいいところで もういちど ためしてね。';
       $('confirmError').hidden = false;
       $('sendBtn').disabled = false;
-      $('sendBtn').textContent = '投票する';
+      $('sendBtn').textContent = '投票する！';
     }
   }
 
   // ---------- 結果画面 ----------
   async function loadResults(token, justVoted) {
     show('loading');
-    const res = await VoteApi.results(token);
+    let res;
+    try { res = await VoteApi.results(token); } catch (e) { res = { ok: false, error: 'network' }; }
     if (!res.ok) {
-      showMessage('結果はまだ公開されていません', `結果は締切（${fmtDeadline(state.deadline)}）のあとに公開されます。`);
+      if (res.error === 'not_yet') {
+        showMessage('けっかは まだひみつ', `けっかは しめきり（${fmtDeadline(state.deadline)}）のあとに 見られるよ。`);
+      } else {
+        showMessage('よみこめなかったよ', 'ページを よみこみなおしてね。');
+      }
       return;
     }
-    $('thanks').hidden = !justVoted && !token;
+    $('thanks').hidden = !token;
     $('thanksMsg').textContent = res.closed
-      ? '投票は締め切られました。最終結果は以下のとおりです。'
-      : `締切（${fmtDeadline(new Date(res.deadline))}）までは途中経過です。結果は変わることがあります。`;
-    $('resultTitle').textContent = res.closed ? '最終結果' : '途中経過';
-    $('resultStatus').textContent = `投票数 ${res.voters}人`;
+      ? '投票は おわりました。さいごの けっかは こちら！'
+      : `しめきり（${fmtDeadline(new Date(res.deadline))}）までは とちゅうの けっかだよ。まだ かわるかも！`;
+    $('resultTitle').textContent = res.closed ? '🏆 けっか発表！' : '📊 いまの じゅんい';
+    $('resultStatus').textContent = `${res.voters}人が投票したよ`;
     $('printLink').href = 'print.html' + (token ? '?t=' + encodeURIComponent(token) : '');
 
     const max = Math.max(1, ...res.items.map(it => it.points));
     $('rankList').innerHTML = res.items.map(it => `
-      <div class="row ${it.rank <= 3 ? 'top' + it.rank : ''}">
-        <div class="r">${it.rank}<small style="font-size:12px">位</small></div>
+      <div class="row ${it.rank <= 3 && it.points > 0 ? 'top' + it.rank : ''}">
+        ${it.rank <= 3 && it.points > 0 ? medal(it.rank) : `<div class="rnum">${it.rank}<small>位</small></div>`}
         <div class="ph"><img src="${imgSrc(it.id)}" alt="No.${it.id}" loading="lazy"></div>
         <div>
-          <div class="pts">${it.points}<small>点</small></div>
-          <div class="cnt">1位 ${it.counts[0]}票・2位 ${it.counts[1]}票・3位 ${it.counts[2]}票</div>
+          <div class="pts">${it.points}<small>てん</small></div>
+          <div class="cnt"><span>1位 ${it.counts[0]}票</span><span>2位 ${it.counts[1]}票</span><span>3位 ${it.counts[2]}票</span></div>
           <div class="bar"><span style="width:${(it.points / max) * 100}%"></span></div>
-          <div class="no">No.${it.id}</div>
         </div>
       </div>`).join('');
     show('resultView');
@@ -192,18 +219,58 @@
     show('messageView');
   }
 
+  // ---------- 紙ふぶき ----------
+  function confetti() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const c = document.createElement('canvas');
+    c.className = 'confetti';
+    const dpr = window.devicePixelRatio || 1;
+    c.width = innerWidth * dpr;
+    c.height = innerHeight * dpr;
+    document.body.appendChild(c);
+    const ctx = c.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const colors = ['#e5432f', '#ffc83d', '#2c3e8f', '#4cb782', '#ff8fb1', '#ffffff'];
+    const ps = Array.from({ length: 140 }, () => ({
+      x: innerWidth / 2 + (Math.random() - .5) * 80,
+      y: innerHeight * .25,
+      vx: (Math.random() - .5) * 14,
+      vy: -Math.random() * 12 - 4,
+      w: 6 + Math.random() * 6,
+      h: 8 + Math.random() * 8,
+      r: Math.random() * Math.PI,
+      vr: (Math.random() - .5) * .4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+    }));
+    const start = performance.now();
+    (function frame(t) {
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      ps.forEach(p => {
+        p.vy += .32; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.r);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.cos(p.r * 2));
+        ctx.restore();
+      });
+      if (t - start < 3200) requestAnimationFrame(frame);
+      else c.remove();
+    })(start);
+  }
+
   // ---------- 起動 ----------
   async function init() {
     let conf;
     try {
       conf = await VoteApi.config();
     } catch (e) {
-      showMessage('読み込みに失敗しました', '通信状態を確認して、ページを再読み込みしてください。');
+      showMessage('よみこめなかったよ', '電波をたしかめて、ページを よみこみなおしてね。');
       return;
     }
     state.deadline = new Date(conf.deadline);
     state.closed = conf.closed;
-    $('deadline').textContent = (conf.closed ? '締切済み：' : '締切：') + fmtDeadline(state.deadline);
+    $('deadline').textContent = (conf.closed ? 'しめきりました：' : 'しめきり：') + fmtDeadline(state.deadline);
 
     const token = VotedStore.get();
     if (token) return loadResults(token, false);
