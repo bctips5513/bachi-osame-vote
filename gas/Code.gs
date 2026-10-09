@@ -40,9 +40,19 @@ function setup() {
   if (!props.getProperty('SALT')) props.setProperty('SALT', Utilities.getUuid());
 }
 
+// シートがまだ無ければ作る（初回アクセス時の保険）
+function ensureSetup_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss.getSheetByName(SHEET_CONFIG) || !ss.getSheetByName(SHEET_VOTES) || !ss.getSheetByName(SHEET_VOTERS) ||
+      !PropertiesService.getScriptProperties().getProperty('SALT')) {
+    setup();
+  }
+}
+
 function doGet(e) {
   const p = (e && e.parameter) || {};
   try {
+    ensureSetup_();
     if (p.action === 'results') return json_(results_(p.token));
     return json_(config_());
   } catch (err) {
@@ -52,6 +62,7 @@ function doGet(e) {
 
 function doPost(e) {
   try {
+    ensureSetup_();
     const body = JSON.parse(e.postData.contents);
     if (body.action === 'vote') return json_(vote_(body));
     return json_({ ok: false, error: 'bad_request' });
